@@ -1,0 +1,31 @@
+meta {
+  name: 02 - Yo soy (api-me)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{pagosUrl}}/api/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3OTQ0NDY3MTcsImV4cCI6MTc5NDQ0NzYxNywiYXVkIjoic3ZjLXBhZ29zIiwiaXNzIjoiYXV0aC1zZXJ2aWNlIiwic3ViIjoiZWxwcm9mZSJ9.NPcTOrtm7hN-MpYJ9Yj0GHunt3RByebU3rhNURT9EeY
+}
+
+tests {
+  test("token válido -> 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("responde con sub=ana y role=user", function () {
+    expect(res.body.sub).to.equal("ana");
+    expect(res.body.role).to.equal("user");
+  });
+}
+
+docs {
+  Con el token legítimo de ana, svc-pagos (puerto 4001) responde quién eres
+  según los claims del token. Funciona igual en modo vulnerable y en modo
+  seguro, porque el token ES válido de verdad: esto NO es el ataque.
+}

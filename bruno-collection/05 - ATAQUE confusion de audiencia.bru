@@ -1,0 +1,39 @@
+meta {
+  name: 05 - ATAQUE confusion de audiencia
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{pagosUrl}}/api/cards
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenBruno}}
+}
+
+tests {
+  test("MODE=vulnerable: el servidor acepta un token de otra audiencia (200)", function () {
+    // Deja este test solo como referencia: NO lo marques en rojo si estás en
+    // modo seguro, ahí el resultado correcto es 401 (mira la pestaña Docs).
+  });
+}
+
+docs {
+  >>> ATAQUE 1: reutilización de un token legítimo de OTRA audiencia <<<
+
+  El token de "bruno" está perfectamente firmado por auth-service. El
+  problema es que fue emitido para "svc-inventario", no para "svc-pagos".
+
+  - MODE=vulnerable -> 200, con las tarjetas ficticias.
+    Causa: svc-pagos usa jwt.decode() y JAMÁS mira el claim "aud".
+  - MODE=secure      -> 401.
+    Motivo en la respuesta: "La audiencia (aud) del token es
+    'svc-inventario', pero este servicio exige 'svc-pagos'."
+    Causa de la corrección: jwt.verify(token, clave, { audience: "svc-pagos" }).
+
+  Ejecútala primero contra `npm run vuln` y luego contra `npm run secure`
+  (reiniciando los servicios) para comparar las dos respuestas en vivo.
+}

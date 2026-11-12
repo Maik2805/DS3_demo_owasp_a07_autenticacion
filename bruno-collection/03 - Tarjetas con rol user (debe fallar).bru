@@ -1,0 +1,31 @@
+meta {
+  name: 03 - Tarjetas con rol user (debe fallar)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{pagosUrl}}/api/cards
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3OTQ0NDY5NzgsImV4cCI6MTc5NDQ0Nzg3OCwiYXVkIjoic3ZjLWludmVudGFyaW8iLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJicnVubyJ9.qbpJnKGFddGnmJQLmvbEOGzQPv3BxsA1DuFVA5mahu8
+}
+
+tests {
+  test("rol insuficiente -> 403 (correcto, en ambos modos)", function () {
+    expect(res.getStatus()).to.equal(403);
+  });
+}
+
+docs {
+  Línea base de control: un usuario normal (role=user) NUNCA debe ver las
+  tarjetas. Debe dar 403 tanto en MODE=vulnerable como en MODE=secure.
+  
+  Si esto da 403 en los dos modos, confirmamos que el control de rol
+  funciona bien — el problema NO está en la autorización por rol, está en
+  que el ATACANTE puede fabricar un token que diga "role":"admin" sin que
+  nadie se lo impida. Eso es lo que probamos en la petición 05.
+}

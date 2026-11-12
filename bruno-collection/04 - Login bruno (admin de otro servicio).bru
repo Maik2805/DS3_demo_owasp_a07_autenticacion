@@ -1,0 +1,46 @@
+meta {
+  name: 04 - Login bruno (admin de otro servicio)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{authUrl}}/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "bruno",
+    "password": "bruno123",
+    "audience": "svc-inventario"
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setVar("tokenBruno", res.body.token);
+  }
+}
+
+tests {
+  test("login correcto -> 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("el token es para svc-inventario, no para svc-pagos", function () {
+    const payload = JSON.parse(atob(res.body.token.split(".")[1]));
+    expect(payload.aud).to.equal("svc-inventario");
+    expect(payload.role).to.equal("admin");
+  });
+}
+
+docs {
+  bruno/bruno123 es admin, pero de OTRO microservicio (svc-inventario).
+  auth-service le firma un token 100% legítimo (firma válida, sin trucos),
+  solo que con aud="svc-inventario" en vez de "svc-pagos".
+
+  Pregunta para la clase antes de ejecutar la 05: "¿Debería este token
+  funcionar contra svc-pagos?" Respuesta correcta: NO, porque no es para
+  este servicio. Vamos a ver qué responde cada modo.
+}

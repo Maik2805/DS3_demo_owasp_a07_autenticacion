@@ -1,0 +1,44 @@
+meta {
+  name: 01 - Login ana (user)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{authUrl}}/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "ana",
+    "password": "ana123"
+  }
+}
+
+script:post-response {
+  // Guardamos el token real de ana en una variable de la colección
+  // para reutilizarlo en las siguientes peticiones.
+  if (res.body && res.body.token) {
+    bru.setVar("tokenAna", res.body.token);
+  }
+}
+
+tests {
+  test("login correcto -> 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("el token trae role=user", function () {
+    const payload = JSON.parse(atob(res.body.token.split(".")[1]));
+    expect(payload.role).to.equal("user");
+  });
+}
+
+docs {
+  Login legítimo contra auth-service (puerto 4000).
+  ana/ana123 tiene rol "user". auth-service firma el token con HS256
+  y le pone aud="svc-pagos", iss="auth-service" y una expiración de 15 min.
+
+  Ejecuta esta petición primero: las siguientes dependen de {{tokenAna}}.
+}
